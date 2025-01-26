@@ -1,4 +1,3 @@
-mod practice;
 
 use std::io; // Importing the standard input/output library for user input
 

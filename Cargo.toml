@@ -5,9 +5,7 @@ edition = "2021"
 [[bin]]
 name = "CLIWeatherApp"
 path = "src/CLIWeatherApp.rs"
-[[bin]]
-name = "Practice"
-path = "src/practice.rs"
+
 
 [dependencies]
 reqwest = {version = "0.11" ,features = [ "blocking","json"]}
