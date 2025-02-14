@@ -33,13 +33,12 @@ pub struct Wind {
 }
 
 pub fn fetch_weather(city: &str, country: &str) -> Result<WeatherResponse, Box<dyn std::error::Error>> {
-    // Cargar las variables del archivo .env
+
     dotenv().ok();
 
-    // Obtener la clave de la API desde las variables de entorno
+
     let api_key = env::var("API_KEY").expect("No se pudo encontrar la clave de la API en .env");
 
-    // Conexión con Redis
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_connection()?;
     let cache_key = format!("weather:{}:{}", city, country);
@@ -67,10 +66,20 @@ pub fn fetch_weather(city: &str, country: &str) -> Result<WeatherResponse, Box<d
 
     // Crear un Runtime para ejecutar la solicitud asincrónica
     let rt = Builder::new_current_thread().enable_all().build()?;
-    let response: WeatherResponse = rt.block_on(async {
+    let mut response: WeatherResponse = rt.block_on(async {
         reqwest::get(&url).await?.json::<WeatherResponse>().await
     })?;
-
+    if response.main.temp< 0.0 {
+        response.weather[0].icon = "snow".parse().unwrap();
+    }else if  response.main.temp>=0.0 && response.main.temp<=10.0 {
+        response.weather[0].icon = "mist".parse().unwrap();
+    }else if response.main.temp>=10.0 && response.main.temp<20.0 {
+        response.weather[0].icon = "rain".parse().unwrap();
+    }else if response.main.temp>=20.0 && response.main.temp<25.0 {
+        response.weather[0].icon = "cloud".parse().unwrap();
+    }else{
+        response.weather[0].icon = "clear".parse().unwrap();
+    }
     // Almacenar en caché el resultado
     let _: () = con.set_ex(&cache_key, serde_json::to_string(&response)?, 3600)?;
     let _: () = con.set_ex(&rate_limit_key, now, 60)?;

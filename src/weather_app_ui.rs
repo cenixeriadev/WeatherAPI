@@ -1,5 +1,6 @@
-
 use eframe::egui;
+use egui_extras::RetainedImage;
+use std::fs;
 use crate::weather_api::{fetch_weather, WeatherResponse};
 
 pub struct WeatherApp {
@@ -7,6 +8,7 @@ pub struct WeatherApp {
     country: String,
     weather_info: Option<WeatherResponse>,
     error_message: String,
+    weather_icon: Option<RetainedImage>,  // Nueva variable para almacenar la imagen
 }
 
 impl Default for WeatherApp {
@@ -16,53 +18,176 @@ impl Default for WeatherApp {
             country: String::new(),
             weather_info: None,
             error_message: String::new(),
+            weather_icon: None,
+        }
+    }
+}
+
+impl WeatherApp {
+    fn load_weather_icon(&mut self, icon_code: &str) {
+        let image_path = format!("img/{}.png", icon_code);
+        if let Ok(image_data) = fs::read(&image_path) {
+            // Usa from_image_bytes en lugar de load_image_bytes
+            match RetainedImage::from_image_bytes(icon_code, &image_data) {
+                Ok(image) => self.weather_icon = Some(image),
+                Err(e) => eprintln!("Error cargando imagen: {}", e),
+            }
         }
     }
 }
 
 impl eframe::App for WeatherApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Aplicación de Clima");
+        // Configurar estilo global
 
-            // Sección de entrada de ciudad y país
-            ui.horizontal(|ui| {
-                ui.label("Ciudad:");
-                ui.text_edit_singleline(&mut self.city);
-                ui.label("Código de país:");
-                ui.text_edit_singleline(&mut self.country);
-                if ui.button("Buscar").clicked() {
-                    match fetch_weather(&self.city, &self.country) {
-                        Ok(response) => {
-                            self.weather_info = Some(response);
-                            self.error_message.clear();
-                        }
-                        Err(e) => {
-                            self.weather_info = None;
-                            self.error_message = format!("Error: {}", e);
-                        }
-                    }
-                }
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            // Título principal
+            let style = ui.style_mut();
+            style.spacing.item_spacing = egui::vec2(10.0, 12.0);
+            style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(40, 42, 54);
+            style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(68, 71, 90);
+            style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(80, 84, 105);
+            ui.vertical_centered(|ui| {
+                ui.add_space(20.0);
+                ui.heading(
+                    egui::RichText::new("Weather App")
+                        .color(egui::Color32::from_rgb(255, 184, 108))
+                        .heading()
+                        .size(24.0),
+                );
+                ui.add_space(10.0);
             });
 
-            // Mostrar mensaje de error si existe
+            // Sección de búsqueda
+            ui.group(|ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        ui.label(
+                            egui::RichText::new("Ciudad")
+                                .color(egui::Color32::from_rgb(189, 147, 249)),
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.city)
+                                .hint_text("Ej: Madrid")
+                                .desired_width(200.0)
+                                .text_color(egui::Color32::WHITE),
+                        );
+                    });
+
+                    ui.vertical(|ui| {
+                        ui.label(
+                            egui::RichText::new("País")
+                                .color(egui::Color32::from_rgb(189, 147, 249)),
+                        );
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.country)
+                                .hint_text("Ej: ES")
+                                .desired_width(80.0)
+                                .text_color(egui::Color32::WHITE),
+                        );
+                    });
+
+                    ui.vertical(|ui| {
+                        ui.add_space(20.0);
+                        if ui
+                            .add(
+                                egui::Button::new("🔍 Buscar")
+                                    .fill(egui::Color32::from_rgb(80, 200, 120))
+                                    .min_size(egui::vec2(15.0, 8.0))
+                            )
+                            .clicked()
+                        {
+                            // Lógica de búsqueda...
+                            match fetch_weather(&self.city, &self.country) {
+                                Ok(response) => {
+                                    self.load_weather_icon(&response.weather[0].icon);
+                                    self.weather_info = Some(response);
+                                    self.error_message.clear();
+                                }
+                                Err(e) => {
+                                    self.weather_info = None;
+                                    self.error_message = format!("Error: {}", e);
+                                }
+                            }
+
+                        }
+                    });
+                });
+            });
+
+            // Mensaje de error
             if !self.error_message.is_empty() {
-                ui.colored_label(egui::Color32::RED, &self.error_message);
+                ui.add_space(10.0);
+                ui.horizontal(|ui| {
+                    ui.colored_label(egui::Color32::RED, "❗");
+                    ui.colored_label(
+                        egui::Color32::RED,
+                        egui::RichText::new(&self.error_message).strong().size(20.0),
+                    );
+                });
             }
 
-            // Mostrar información del clima dentro de un área desplazable
+            // Sección de resultados
             if let Some(weather) = &self.weather_info {
-                ui.separator();
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.heading(format!("{} ({})", weather.name, self.country.to_uppercase()));
-                    ui.image(format!("img/{}.png", weather.weather[0].icon));
-                    ui.label(format!("Temperatura: {} °C", weather.main.temp));
-                    ui.label(format!("Humedad: {}%", weather.main.humidity));
-                    ui.label(format!("Presión: {} hPa", weather.main.pressure));
-                    ui.label(format!("Velocidad del viento: {} m/s", weather.wind.speed));
-                });
+                ui.add_space(20.0);
+                egui::Frame::group(ui.style())
+                    .fill(egui::Color32::from_rgb(40, 42, 54))
+                    .inner_margin(20.0)
+                    .show(ui, |ui| {
+                        ui.vertical_centered(|ui| {
+                            // Icono del clima
+                            if let Some(image) = &self.weather_icon {
+                                image.show_size(ui, egui::vec2(100.0, 100.0));
+                            }
+
+                            // Información principal
+                            ui.heading(
+                                egui::RichText::new(format!(
+                                    "{} ({})",
+                                    weather.name,
+                                    self.country.to_uppercase()
+                                ))
+                                    .color(egui::Color32::from_rgb(139, 233, 253))
+                                    .size(20.0),
+                            );
+
+                            ui.add_space(15.0);
+                            ui.label(
+                                egui::RichText::new(format!("{:.1}°C", weather.main.temp))
+                                    .color(egui::Color32::from_rgb(255, 121, 198))
+                                    .size(40.0),
+                            );
+
+                            // Detalles secundarios
+                            ui.add_space(20.0);
+                            egui::Grid::new("weather_details")
+                                .spacing(egui::vec2(30.0, 10.0))
+                                .show(ui, |ui| {
+                                    weather_detail(ui, "💧 Humedad", &format!("{}%", weather.main.humidity));
+                                    weather_detail(ui, "📉 Presión", &format!("{} hPa", weather.main.pressure));
+                                    weather_detail(ui, "🌬️ Viento", &format!("{} m/s", weather.wind.speed));
+                                    ui.end_row();
+                                });
+                        });
+                    });
             }
         });
     }
 }
 
+fn weather_detail(ui: &mut egui::Ui, label: &str, value: &str) {
+    ui.vertical(|ui| {
+        ui.label(
+            egui::RichText::new(label)
+                .color(egui::Color32::from_rgb(189, 147, 249))
+                .size(14.0),
+        );
+        ui.label(
+            egui::RichText::new(value)
+                .color(egui::Color32::WHITE)
+                .strong()
+                .size(16.0),
+        );
+    });
+}
