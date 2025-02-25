@@ -1,5 +1,4 @@
 use eframe::egui;
-use egui_extras::RetainedImage;
 use std::fs;
 use crate::weather_api::{fetch_weather, WeatherResponse};
 
@@ -8,7 +7,7 @@ pub struct WeatherApp {
     country: String,
     weather_info: Option<WeatherResponse>,
     error_message: String,
-    weather_icon: Option<RetainedImage>,  // Nueva variable para almacenar la imagen
+    weather_icon: Option<egui::TextureHandle>,  // Nueva variable para almacenar la imagen
 }
 
 impl Default for WeatherApp {
@@ -24,23 +23,31 @@ impl Default for WeatherApp {
 }
 
 impl WeatherApp {
-    fn load_weather_icon(&mut self, icon_code: &str) {
+    fn load_weather_icon(&mut self, ctx: &egui::Context, icon_code: &str) {
         let image_path = format!("img/{}.png", icon_code);
         if let Ok(image_data) = fs::read(&image_path) {
-            // Usa from_image_bytes en lugar de load_image_bytes
-            match RetainedImage::from_image_bytes(icon_code, &image_data) {
-                Ok(image) => self.weather_icon = Some(image),
+            // Cargar la imagen como una textura
+            match image::load_from_memory(&image_data) {
+                Ok(mut image) => {
+                    image = image.resize_exact(100, 100, image::imageops::FilterType::Nearest);
+                    let size = [image.width() as _, image.height() as _];
+                    let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                        size,
+                        image.as_rgba8().unwrap().as_ref(),
+                    );
+                    let texture_handle = ctx.load_texture(icon_code, color_image, Default::default());
+                    self.weather_icon = Some(texture_handle); // Guardar la textura
+                }
                 Err(e) => eprintln!("Error cargando imagen: {}", e),
             }
+        } else {
+            eprintln!("No se pudo leer la imagen desde: {}", image_path);
         }
     }
 }
 
 impl eframe::App for WeatherApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Configurar estilo global
-
-
         egui::CentralPanel::default().show(ctx, |ui| {
             // Título principal
             let style = ui.style_mut();
@@ -101,7 +108,7 @@ impl eframe::App for WeatherApp {
                             // Lógica de búsqueda...
                             match fetch_weather(&self.city, &self.country) {
                                 Ok(response) => {
-                                    self.load_weather_icon(&response.weather[0].icon);
+                                    self.load_weather_icon(&ctx,&response.weather[0].icon);
                                     self.weather_info = Some(response);
                                     self.error_message.clear();
                                 }
@@ -138,7 +145,8 @@ impl eframe::App for WeatherApp {
                         ui.vertical_centered(|ui| {
                             // Icono del clima
                             if let Some(image) = &self.weather_icon {
-                                image.show_size(ui, egui::vec2(100.0, 100.0));
+                                //image.show_size(ui, egui::vec2(100.0, 100.0));
+                                ui.image((image.id(), image.size_vec2()));
                             }
 
                             // Información principal
