@@ -38,10 +38,10 @@ impl WeatherApp {
                     let texture_handle = ctx.load_texture(icon_code, color_image, Default::default());
                     self.weather_icon = Some(texture_handle); // Guardar la textura
                 }
-                Err(e) => eprintln!("Error cargando imagen: {}", e),
+                Err(e) => eprintln!("Error loading image : {}", e),
             }
         } else {
-            eprintln!("No se pudo leer la imagen desde: {}", image_path);
+            eprintln!("Could not read image from : {}", image_path);
         }
     }
 }
@@ -71,12 +71,12 @@ impl eframe::App for WeatherApp {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         ui.label(
-                            egui::RichText::new("Ciudad")
+                            egui::RichText::new("City")
                                 .color(egui::Color32::from_rgb(189, 147, 249)),
                         );
                         ui.add(
                             egui::TextEdit::singleline(&mut self.city)
-                                .hint_text("Ej: Madrid")
+                                .hint_text("Ex: Madrid")
                                 .desired_width(200.0)
                                 .text_color(egui::Color32::WHITE),
                         );
@@ -84,12 +84,12 @@ impl eframe::App for WeatherApp {
 
                     ui.vertical(|ui| {
                         ui.label(
-                            egui::RichText::new("País")
+                            egui::RichText::new("Country")
                                 .color(egui::Color32::from_rgb(189, 147, 249)),
                         );
                         ui.add(
                             egui::TextEdit::singleline(&mut self.country)
-                                .hint_text("Ej: ES")
+                                .hint_text("Ex: ES")
                                 .desired_width(80.0)
                                 .text_color(egui::Color32::WHITE),
                         );
@@ -99,7 +99,7 @@ impl eframe::App for WeatherApp {
                         ui.add_space(20.0);
                         if ui
                             .add(
-                                egui::Button::new("🔍 Buscar")
+                                egui::Button::new("🔍 Search")
                                     .fill(egui::Color32::from_rgb(80, 200, 120))
                                     .min_size(egui::vec2(15.0, 8.0))
                             )
@@ -125,14 +125,25 @@ impl eframe::App for WeatherApp {
 
             // Mensaje de error
             if !self.error_message.is_empty() {
-                ui.add_space(10.0);
-                ui.horizontal(|ui| {
-                    ui.colored_label(egui::Color32::RED, "❗");
-                    ui.colored_label(
-                        egui::Color32::RED,
-                        egui::RichText::new(&self.error_message).strong().size(20.0),
-                    );
-                });
+                egui::Window::new("¡Error!")
+                    .collapsible(false)
+                    .resizable(false)
+                    .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                    .show(ctx, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.colored_label(egui::Color32::RED, "❗");
+                            ui.label(
+                                egui::RichText::new(&self.error_message)
+                                    .color(egui::Color32::LIGHT_RED)
+                            );
+                        });
+
+                        ui.vertical_centered(|ui| {
+                            if ui.button("Accept").clicked() {
+                                self.error_message.clear();
+                            }
+                        });
+                    });
             }
 
             // Sección de resultados
@@ -172,9 +183,9 @@ impl eframe::App for WeatherApp {
                             egui::Grid::new("weather_details")
                                 .spacing(egui::vec2(30.0, 10.0))
                                 .show(ui, |ui| {
-                                    weather_detail(ui, "💧 Humedad", &format!("{}%", weather.main.humidity));
-                                    weather_detail(ui, "📉 Presión", &format!("{} hPa", weather.main.pressure));
-                                    weather_detail(ui, "🌬️ Viento", &format!("{} m/s", weather.wind.speed));
+                                    weather_detail(ui, "💧 Humedity", &format!("{}%", weather.main.humidity));
+                                    weather_detail(ui, "📉 Pressure", &format!("{} hPa", weather.main.pressure));
+                                    weather_detail(ui, "🌬️ Wind velocity", &format!("{} m/s", weather.wind.speed));
                                     ui.end_row();
                                 });
                         });
