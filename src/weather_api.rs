@@ -1,5 +1,4 @@
 use std::env;
-use std::time::{SystemTime};
 use dotenvy::dotenv;
 use redis::Commands;
 use reqwest;
@@ -31,19 +30,29 @@ pub struct Weather {
 pub struct Wind {
     pub speed: f64,
 }
-
+const REQUESTS_PER_MINUTE: u64 = 12;
+const RATE_LIMIT_WINDOW: i64 = 60;
 pub fn fetch_weather(city: &str, country: &str) -> Result<WeatherResponse, Box<dyn std::error::Error>> {
 
     dotenv().ok();
 
-
-    let api_key = env::var("API_KEY").expect("No se pudo encontrar la clave de la API en .env");
+    let api_key = env::var("API_KEY").expect("Could not find API key in .env");
 
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_connection()?;
     let cache_key = format!("weather:{}:{}", city, country);
     let rate_limit_key = format!("ratelimit:{}:{}", city, country);
+    let count: u64 = con.incr(&rate_limit_key, 1)?; // Incrementa el contador
 
+    // Si es la primera solicitud, establece expiración
+    if count == 1 {
+        con.expire(&rate_limit_key, RATE_LIMIT_WINDOW)?;
+    }
+
+    // Bloquear después de 20 solicitudes
+    if count > REQUESTS_PER_MINUTE {
+        return Err("Rate limit exceeded".into());
+    }
     // Verificar si hay datos en caché
     if let Ok(Some(cached_data)) = con.get::<_, Option<String>>(&cache_key) {
         let weather_response: WeatherResponse = serde_json::from_str(&cached_data)?;
@@ -51,12 +60,7 @@ pub fn fetch_weather(city: &str, country: &str) -> Result<WeatherResponse, Box<d
     }
 
     // Verificar el límite de solicitudes
-    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?.as_secs();
-    if let Ok(Some(last_request)) = con.get::<_, Option<u64>>(&rate_limit_key) {
-        if now - last_request < 60 {
-            return Err("Rate limit exceeded".into());
-        }
-    }
+
 
     // Crear la URL para la API
     let url = format!(
@@ -82,7 +86,7 @@ pub fn fetch_weather(city: &str, country: &str) -> Result<WeatherResponse, Box<d
     }
     // Almacenar en caché el resultado
     let _: () = con.set_ex(&cache_key, serde_json::to_string(&response)?, 3600)?;
-    let _: () = con.set_ex(&rate_limit_key, now, 60)?;
+    let _: () = con.set_ex(&rate_limit_key, count, 60)?;
 
     Ok(response)
 }
