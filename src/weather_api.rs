@@ -59,8 +59,8 @@ pub fn fetch_weather(city: &str, country_code: &str) -> Result<WeatherResponse, 
     dotenv().ok();
 
     let api_key = env::var("API_KEY").expect("Could not find API key in .env");
-
-    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let redis_url = env::var("REDIS_URL").expect("Could not find REDIS URL in .env");
+    let client = redis::Client::open(redis_url)?;
     let mut con = client.get_connection()?;
     let cache_key = format!("weather:{}:{}", city, country_code);
     let rate_limit_key = format!("ratelimit:{}:{}", city, country_code);
@@ -98,7 +98,6 @@ pub fn fetch_weather(city: &str, country_code: &str) -> Result<WeatherResponse, 
     }else{
         response.weather[0].icon = "clear".parse().unwrap();
     }
-
     let _: () = con.set_ex(&cache_key, serde_json::to_string(&response)?, 3600)?;
     let _: () = con.set_ex(&rate_limit_key, count, 60)?;
 

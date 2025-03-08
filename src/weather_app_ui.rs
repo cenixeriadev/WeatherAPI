@@ -9,6 +9,7 @@ pub struct WeatherApp {
     weather_info: Option<WeatherResponse>,
     error_message: String,
     weather_icon: Option<egui::TextureHandle>,
+    description : String,
 }
 
 impl Default for WeatherApp {
@@ -20,6 +21,7 @@ impl Default for WeatherApp {
             weather_info: None,
             error_message: String::new(),
             weather_icon: None,
+            description : String::new(),
         }
     }
 }
@@ -101,6 +103,7 @@ impl eframe::App for WeatherApp {
                             match fetch_weather(&self.city, &self.country) {
                                 Ok(response) => {
                                     self.load_weather_icon(&ctx,&response.weather[0].icon);
+                                    self.description = response.weather[0].description.to_string();
                                     self.weather_info = Some(response);
                                     self.error_message.clear();
                                 }
@@ -174,10 +177,12 @@ impl eframe::App for WeatherApp {
                             ui.add_space(20.0);
                             egui::Grid::new("weather_details")
                                 .spacing(egui::vec2(30.0, 10.0))
+                                .min_col_width(100.0)
                                 .show(ui, |ui| {
                                     weather_detail(ui, "💧 Humedity", &format!("{}%", weather.main.humidity));
                                     weather_detail(ui, "📉 Pressure", &format!("{} hPa", weather.main.pressure));
-                                    weather_detail(ui, "🌬️ Wind velocity", &format!("{} m/s", weather.wind.speed));
+                                    weather_detail(ui, "🌀 Wind velocity", &format!("{} m/s", weather.wind.speed));
+                                    weather_detail(ui , "✨ Description" , &format!("{}" , &self.description));
                                     ui.end_row();
                                 });
                         });
@@ -188,7 +193,7 @@ impl eframe::App for WeatherApp {
 }
 
 fn weather_detail(ui: &mut egui::Ui, label: &str, value: &str) {
-    ui.vertical(|ui| {
+    ui.horizontal(|ui| {
         ui.label(
             egui::RichText::new(label)
                 .color(egui::Color32::from_rgb(189, 147, 249))
