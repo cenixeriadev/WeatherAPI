@@ -25,7 +25,7 @@ This project is a Weather API that fetches and returns weather data from a third
 
 ## Setup and Installation
 ### Prerequisites
-- Install Redis
+- Install Redis and start service
 - Obtain an API key from Open Weather (or any chosen weather API)
 
 ### Installation Steps
