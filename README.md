@@ -31,8 +31,8 @@ This project is a Weather API that fetches and returns weather data from a third
 ### Installation Steps
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-username/weather-api.git
-   cd weather-api
+   git clone https://github.com/cenixeriadev/WeatherAPI.git
+   cd WeatherAPI
    ```
 2. Install dependencies:
    ```sh
