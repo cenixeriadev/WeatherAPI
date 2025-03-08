@@ -56,12 +56,12 @@ This project is a Weather API that fetches and returns weather data from a third
 - **Response:**
   ```json
   {
-  "city": "New York",
-  "temperature": "15°C",
-  "humidity": 60,
-  "pressure": 1013,
-  "wind_speed": 5.0,
-  "description": "Clear sky"
+     "city": "New York",
+     "temperature": "15°C",
+     "humidity": 60,
+     "pressure": 1013,
+     "wind_speed": 5.0,
+     "description": "Clear sky"
   }
   ```
 
