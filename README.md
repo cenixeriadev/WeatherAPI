@@ -2,7 +2,10 @@
 
 ## Description
 This project is a Weather API that fetches and returns weather data from a third-party API instead of relying on our own weather data. It helps me in understanding how to work with third-party APIs, caching mechanisms, and environment variables.
+# Preview
+![img.png](img.png)
 
+![img_1.png](img_1.png)
 ## Features
 - Fetches real-time weather data from a third-party API (e.g., OpenWeather API).
 - Implements in-memory caching using Redis to store recent requests and reduce API calls.
