@@ -52,7 +52,7 @@ This project is a Weather API that fetches and returns weather data from a third
 ## API Endpoints
 ### Get Weather Data
 - **Endpoint:** `GET /weather/:city/:country_code`
-- **Description:** Fetches weather data for a given country and city code(Ex: US).
+- **Description:** Fetches weather data for a given city and country code(Ex: US).
 - **Response:**
   ```json
   {
