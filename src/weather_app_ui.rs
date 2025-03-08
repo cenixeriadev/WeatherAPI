@@ -5,9 +5,10 @@ use crate::weather_api::{fetch_weather, WeatherResponse};
 pub struct WeatherApp {
     city: String,
     country: String,
+    temp_country : String,
     weather_info: Option<WeatherResponse>,
     error_message: String,
-    weather_icon: Option<egui::TextureHandle>,  // Nueva variable para almacenar la imagen
+    weather_icon: Option<egui::TextureHandle>,
 }
 
 impl Default for WeatherApp {
@@ -15,6 +16,7 @@ impl Default for WeatherApp {
         Self {
             city: String::new(),
             country: String::new(),
+            temp_country : String::new(),
             weather_info: None,
             error_message: String::new(),
             weather_icon: None,
@@ -26,7 +28,6 @@ impl WeatherApp {
     fn load_weather_icon(&mut self, ctx: &egui::Context, icon_code: &str) {
         let image_path = format!("img/{}.png", icon_code);
         if let Ok(image_data) = fs::read(&image_path) {
-            // Cargar la imagen como una textura
             match image::load_from_memory(&image_data) {
                 Ok(mut image) => {
                     image = image.resize_exact(100, 100, image::imageops::FilterType::Nearest);
@@ -36,7 +37,7 @@ impl WeatherApp {
                         image.as_rgba8().unwrap().as_ref(),
                     );
                     let texture_handle = ctx.load_texture(icon_code, color_image, Default::default());
-                    self.weather_icon = Some(texture_handle); // Guardar la textura
+                    self.weather_icon = Some(texture_handle);
                 }
                 Err(e) => eprintln!("Error loading image : {}", e),
             }
@@ -49,26 +50,17 @@ impl WeatherApp {
 impl eframe::App for WeatherApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // Título principal
             let style = ui.style_mut();
             style.spacing.item_spacing = egui::vec2(10.0, 12.0);
             style.visuals.widgets.inactive.bg_fill = egui::Color32::from_rgb(40, 42, 54);
             style.visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(68, 71, 90);
             style.visuals.widgets.active.bg_fill = egui::Color32::from_rgb(80, 84, 105);
-            ui.vertical_centered(|ui| {
-                ui.add_space(20.0);
-                ui.heading(
-                    egui::RichText::new("Weather App")
-                        .color(egui::Color32::from_rgb(255, 184, 108))
-                        .heading()
-                        .size(24.0),
-                );
-                ui.add_space(10.0);
-            });
 
-            // Sección de búsqueda
+            ui.add_space(30.0);
+
             ui.group(|ui| {
                 ui.horizontal(|ui| {
+
                     ui.vertical(|ui| {
                         ui.label(
                             egui::RichText::new("City")
@@ -88,7 +80,7 @@ impl eframe::App for WeatherApp {
                                 .color(egui::Color32::from_rgb(189, 147, 249)),
                         );
                         ui.add(
-                            egui::TextEdit::singleline(&mut self.country)
+                            egui::TextEdit::singleline(&mut self.temp_country)
                                 .hint_text("Ex: ES")
                                 .desired_width(80.0)
                                 .text_color(egui::Color32::WHITE),
@@ -105,7 +97,7 @@ impl eframe::App for WeatherApp {
                             )
                             .clicked()
                         {
-                            // Lógica de búsqueda...
+                            self.country = self.temp_country.clone();
                             match fetch_weather(&self.city, &self.country) {
                                 Ok(response) => {
                                     self.load_weather_icon(&ctx,&response.weather[0].icon);
@@ -114,7 +106,7 @@ impl eframe::App for WeatherApp {
                                 }
                                 Err(e) => {
                                     self.weather_info = None;
-                                    self.error_message = format!("Error: {}", e);
+                                    self.error_message = format!("{}", e);
                                 }
                             }
 
@@ -141,26 +133,26 @@ impl eframe::App for WeatherApp {
                         ui.vertical_centered(|ui| {
                             if ui.button("Accept").clicked() {
                                 self.error_message.clear();
+                                self.city.clear();
+                                self.country.clear();
                             }
                         });
                     });
             }
 
-            // Sección de resultados
             if let Some(weather) = &self.weather_info {
                 ui.add_space(20.0);
                 egui::Frame::group(ui.style())
                     .fill(egui::Color32::from_rgb(40, 42, 54))
                     .inner_margin(20.0)
                     .show(ui, |ui| {
+
                         ui.vertical_centered(|ui| {
-                            // Icono del clima
+
                             if let Some(image) = &self.weather_icon {
-                                //image.show_size(ui, egui::vec2(100.0, 100.0));
                                 ui.image((image.id(), image.size_vec2()));
                             }
 
-                            // Información principal
                             ui.heading(
                                 egui::RichText::new(format!(
                                     "{} ({})",
@@ -178,7 +170,7 @@ impl eframe::App for WeatherApp {
                                     .size(40.0),
                             );
 
-                            // Detalles secundarios
+
                             ui.add_space(20.0);
                             egui::Grid::new("weather_details")
                                 .spacing(egui::vec2(30.0, 10.0))

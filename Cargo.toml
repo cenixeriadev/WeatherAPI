@@ -20,3 +20,5 @@ eframe = "0.27"
 egui = "0.27"  # Añade esto explícitamente
 egui_extras = { version = "0.27", features = ["image"] }  # Versión alineada
 image = "0.24"
+regex = "1.11.1"
+lazy_static = "1.5.0"
