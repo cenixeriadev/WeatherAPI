@@ -1,9 +1,9 @@
 [package]
-name = "Inirust"
+name = "WeatherAPI"
 version = "0.1.0"
 edition = "2021"
 [[bin]]
-name = "CLIWeatherApp"
+name = "WeatherApp"
 path = "src/main.rs"
 
 
