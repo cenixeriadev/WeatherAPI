@@ -1,0 +1,24 @@
+[package]
+name = "WeatherAPI"
+version = "0.1.0"
+edition = "2021"
+[[bin]]
+name = "WeatherApp"
+path = "src/main.rs"
+
+
+[dependencies]
+reqwest = {version = "0.11" ,features = [ "blocking","json"]}
+serde ={version = "1.0" , features = ["derive"]}
+serde_json = "1.0"
+colored = "2.0"
+dotenvy = "0.15"
+tokio = { version = "1", features = ["full"] }      # Para async/await
+redis = "0.24"                                      # Cliente de Redis
+governor = "0.6"
+eframe = "0.27"
+egui = "0.27"  # Añade esto explícitamente
+egui_extras = { version = "0.27", features = ["image"] }  # Versión alineada
+image = "0.24"
+regex = "1.11.1"
+lazy_static = "1.5.0"
